@@ -412,13 +412,13 @@
   <div class="charts-section">
     <div class="chart-grid">
       <div class="chart-card">
-        <h3>📈 Cumulatieve kosten</h3>
-        <p>Totale kosten over de volledige looptijd</p>
+        <h3>📈 Werkelijke kasstromen</h3>
+        <p>Cumulatief geld uit/in: startinvestering op dag 0, jaarlijkse kosten, restwaarde bij verkoop</p>
         <div class="chart-wrap"><canvas id="chartCumulative"></canvas></div>
       </div>
       <div class="chart-card">
         <h3>🎯 Break-even analyse</h3>
-        <p>Jaarkosten per aantal privékilometers (zakelijke km vast)</p>
+        <p>Jaarkosten (economisch, incl. opportuniteitskosten) per aantal privékilometers</p>
         <div class="chart-wrap"><canvas id="chartBreakeven"></canvas></div>
       </div>
       <div class="chart-card">
@@ -827,20 +827,72 @@ function updateCharts(inp, s1, s2, s3) {
 
 function updateCumulativeChart(inp, s1, s2, s3) {
   const years = inp.gebruiksduur;
-  const labels = Array.from({length: years + 1}, (_, i) => i === 0 ? 'Start' : `Jaar ${i}`);
-  const cum = (annual) => Array.from({length: years + 1}, (_, i) => annual * i);
+  const vpb1 = s1.vpbRate, vpb3 = s3.vpbRate;
+
+  // Annual running cash costs (EXCLUDING depreciation & opp cost — those become the upfront/final values)
+  // S1: BV pays running costs (VPB-deductible) + BTW correction + bijtelling IB
+  //     MINUS the annual VPB tax saving on depreciation (dep × vpb = cash saving each year)
+  const run1 = (s1.fuel + inp.mrbVerzekering + inp.onderhoud) * (1 - vpb1)
+             + s1.btwCorr + s1.ibTax
+             - s1.dep * vpb1;   // VPB saving on depreciation = cash inflow each year
+
+  // S2: DGA pays all running costs privately; receives km-reimb tax-free from BV
+  //     BV saves VPB on km-reimb → net household benefit = kmVerg × vpbRate
+  const run2 = (s2.fuel + inp.mrbVerzekering + inp.onderhoud) - s2.kmVerg * s2.vpbRate;
+
+  // S3: BV pays lease + optional fuel (both VPB-deductible) + BTW correction + bijtelling IB
+  //     s3.fuel is already 0 when leaseBrandstof=true (see scenario3())
+  const run3 = (s3.annual + s3.fuel) * (1 - vpb3) + s3.btwCorr + s3.ibTax;
+
+  // Build data points: [Start, Jaar 1 ... Jaar n, Na verkoop]
+  const labels = ['Start'];
+  for (let i = 1; i <= years; i++) labels.push(`Jaar ${i}`);
+  labels.push('Na verkoop');
+
+  const d1 = [inp.kostprijs];   // BV pays upfront on day 0
+  const d2 = [inp.kostprijs];   // DGA pays privately on day 0
+  const d3 = [0];               // Lease: no upfront payment
+
+  for (let yr = 1; yr <= years; yr++) {
+    d1.push(d1[yr - 1] + run1);
+    d2.push(d2[yr - 1] + run2);
+    d3.push(d3[yr - 1] + run3);
+  }
+
+  // Final point: recover restwaarde (koop scenarios only)
+  d1.push(d1[years] - inp.restwaarde);
+  d2.push(d2[years] - inp.restwaarde);
+  d3.push(d3[years]); // lease: no residual value
 
   chartCumulative.data.labels = labels;
   chartCumulative.data.datasets = [
-    { label: 'Koop via BV', data: cum(s1.total), borderColor: COLORS.s1, backgroundColor: COLORS.s1a, borderWidth: 2.5, fill: true, tension: 0 },
-    { label: 'Auto in privé', data: cum(s2.total), borderColor: COLORS.s2, backgroundColor: COLORS.s2a, borderWidth: 2.5, fill: true, tension: 0 },
-    { label: 'Operational Lease', data: cum(s3.total), borderColor: COLORS.s3, backgroundColor: COLORS.s3a, borderWidth: 2.5, fill: true, tension: 0 }
+    {
+      label: 'Koop via BV', data: d1,
+      borderColor: COLORS.s1, backgroundColor: COLORS.s1a,
+      borderWidth: 2.5, fill: false, tension: 0,
+      pointRadius: d1.map((_, i) => (i === 0 || i === d1.length - 1) ? 6 : 3),
+      pointBackgroundColor: COLORS.s1
+    },
+    {
+      label: 'Auto in privé', data: d2,
+      borderColor: COLORS.s2, backgroundColor: COLORS.s2a,
+      borderWidth: 2.5, fill: false, tension: 0,
+      pointRadius: d2.map((_, i) => (i === 0 || i === d2.length - 1) ? 6 : 3),
+      pointBackgroundColor: COLORS.s2
+    },
+    {
+      label: 'Operational Lease', data: d3,
+      borderColor: COLORS.s3, backgroundColor: COLORS.s3a,
+      borderWidth: 2.5, fill: false, tension: 0,
+      pointRadius: d3.map((_, i) => (i === 0 || i === d3.length - 1) ? 6 : 3),
+      pointBackgroundColor: COLORS.s3
+    }
   ];
   chartCumulative.update('none');
 }
 
 function updateBreakevenChart(inp, s1r, s2r, s3r) {
-  const maxKm = 40000;
+  const maxKm = 60000;
   const step  = 2000;
   const kmValues = Array.from({length: maxKm / step + 1}, (_, i) => i * step);
 
