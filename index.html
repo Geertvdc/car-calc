@@ -212,13 +212,23 @@
 
         <div class="grid2">
           <div class="form-group">
-            <label>MRB + verzekering</label>
+            <label>MRB (motorrijtuigenbelasting)</label>
             <div class="input-wrap has-pre has-suf">
               <span class="input-pre">€</span>
-              <input type="number" id="mrbVerzekering" value="2400" min="0" step="100">
+              <input type="number" id="mrb" value="800" min="0" step="50">
               <span class="input-suf">/jr</span>
             </div>
           </div>
+          <div class="form-group">
+            <label>Verzekering</label>
+            <div class="input-wrap has-pre has-suf">
+              <span class="input-pre">€</span>
+              <input type="number" id="verzekering" value="1600" min="0" step="100">
+              <span class="input-suf">/jr</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid2">
           <div class="form-group">
             <label>Onderhoud (incl. BTW)</label>
             <div class="input-wrap has-pre has-suf">
@@ -535,7 +545,7 @@ function scenario1(inp) {
 
   return {
     total,
-    dep, oppCost, mrbVerzekering, onderhoud, fuel,
+    dep, oppCost, mrb: inp.mrb, verzekering: inp.verzekering, mrbVerzekering: inp.mrbVerzekering, onderhoud, fuel,
     grossBV, vpbSaving, btwCorr, netBV, bijtelling, ibTax, vpbRate
   };
 }
@@ -560,7 +570,7 @@ function scenario2(inp) {
 
   return {
     total,
-    dep, oppCost, mrbVerzekering, onderhoud, fuel,
+    dep, oppCost, mrb: inp.mrb, verzekering: inp.verzekering, mrbVerzekering, onderhoud, fuel,
     grossCar, kmVerg, netBenefit, vpbRate
   };
 }
@@ -600,7 +610,9 @@ function getInputs() {
     kostprijs:            v('kostprijs'),
     restwaarde:           v('restwaarde'),
     gebruiksduur:         Math.max(1, v('gebruiksduur')),
-    mrbVerzekering:       v('mrbVerzekering'),
+    mrbVerzekering:       v('mrb') + v('verzekering'),
+    mrb:                  v('mrb'),
+    verzekering:          v('verzekering'),
     onderhoud:            v('onderhoud'),
     maandLease:           v('maandLease'),
     leaseBrandstof:       chk('leaseBrandstof'),
@@ -687,8 +699,10 @@ function buildDetailTable(inp, s1, s2, s3) {
     s1.dep * (1 - vpb1), s2.dep, null);
   html += row(`Opportuniteitskosten <small style="color:var(--muted)">(${fmtPct(inp.rendement)} × gem. kapitaal)</small>`,
     s1.oppCost * (1 - vpb1), s2.oppCost, null);
-  html += row('MRB + verzekering',
-    s1.mrbVerzekering * (1 - vpb1), s2.mrbVerzekering, null);
+  html += row('MRB',
+    s1.mrb * (1 - vpb1), s2.mrb, null);
+  html += row('Verzekering',
+    s1.verzekering * (1 - vpb1), s2.verzekering, null);
   html += row('Onderhoud',
     s1.onderhoud * (1 - vpb1), s2.onderhoud, null);
 
@@ -929,9 +943,14 @@ function updateBreakdownChart(inp, s1, s2, s3) {
       backgroundColor: ['#93c5fd','#86efac','#fcd34d']
     },
     {
-      label: 'MRB + verzekering',
-      data: [s1.mrbVerzekering * (1-vpb1), s2.mrbVerzekering, 0],
+      label: 'MRB',
+      data: [s1.mrb * (1-vpb1), s2.mrb, 0],
       backgroundColor: ['#60a5fa','#4ade80','#fbbf24']
+    },
+    {
+      label: 'Verzekering',
+      data: [s1.verzekering * (1-vpb1), s2.verzekering, 0],
+      backgroundColor: ['#38bdf8','#34d399','#fb923c']
     },
     {
       label: 'Onderhoud',
