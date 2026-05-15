@@ -339,7 +339,7 @@
               <span class="input-suf">km</span>
             </div>
           </div>
-          <div class="hint">Belastingvrije vergoeding: €0,23/km</div>
+          <div class="hint">Belastingvrije vergoeding: €0,25/km</div>
         </div>
       </div>
 
@@ -447,7 +447,7 @@
       <li>VPB-tarieven 2026: <strong>19%</strong> over de eerste €200.000 winst, <strong>25,8%</strong> daarboven (marginaal tarief).</li>
       <li>IB box 1 2026: <strong>35,75%</strong> t/m €38.883 · <strong>37,56%</strong> t/m €78.426 · <strong>49,5%</strong> daarboven (marginaal tarief op bijtelling).</li>
       <li>BTW-correctie privégebruik auto: <strong>2,7%</strong> van catalogusprijs per jaar (forfaitair) voor BV-scenario's.</li>
-      <li>Belastingvrije km-vergoeding voor privé-scenario: <strong>€0,23/km</strong> (2025/2026 — belastingdienst.nl).</li>
+      <li>Belastingvrije km-vergoeding voor privé-scenario: <strong>€0,25/km</strong> (2026).</li>
       <li>Opportuniteitskosten koop = gemiddeld gebonden kapitaal × ingesteld rendement%. Lease: het vrijgehouden aankoopbedrag (kostprijs) rendeert volledig; dat voordeel (na VPB) wordt in mindering gebracht op de leasekosten.</li>
       <li>EV bijtelling 2026: <strong>18%</strong> op eerste €30.000 catalogusprijs, <strong>22%</strong> daarboven (auto-berekend).</li>
       <li>Afschrijving is economisch (lineair), niet fiscaal. BPM-teruggave, MIA/VAMIL en andere subsidies zijn <em>niet</em> meegenomen.</li>
@@ -476,7 +476,7 @@ const TAX = {
   IB_RATE_2:    0.3756,  // €38.883–€78.426
   IB_HIGH:      0.495,   // boven €78.426
   BTW_CORRECTION: 0.027,
-  KM_VERG:      0.23,    // belastingvrije km-verg. 2025/2026 (belastingdienst.nl)
+  KM_VERG:      0.25,    // belastingvrije km-verg. 2026
   EV_BRACKET:   30000,
   EV_RATE:      0.18,    // 2026
   STD_RATE:     0.22
@@ -754,7 +754,7 @@ function buildDetailTable(inp, s1, s2, s3) {
     s1.ibTax, null, s3.ibTax);
 
   html += sectionRow('Km-vergoeding voordeel (privé-scenario)');
-  html += row(`Belastingvrije km-verg. van BV (${inp.zakelijkeKm.toLocaleString('nl-NL')} km × €0,23)`,
+  html += row(`Belastingvrije km-verg. van BV (${inp.zakelijkeKm.toLocaleString('nl-NL')} km × €0,25)`,
     null, -s2.kmVerg, null, 'neg');
   html += `<tr class="tr-sub"><td>waarvan VPB-besparing BV (netto voordeel huishouden)</td><td class="num">—</td><td class="num neg">−${fmt(s2.netBenefit)}</td><td class="num">—</td></tr>`;
 
