@@ -448,7 +448,7 @@
       <li>IB box 1: <strong>36,97%</strong> t/m €75.518, <strong>49,5%</strong> daarboven (marginaal tarief op bijtelling).</li>
       <li>BTW-correctie privégebruik auto: <strong>2,7%</strong> van catalogusprijs per jaar (forfaitair) voor BV-scenario's.</li>
       <li>Belastingvrije km-vergoeding voor privé-scenario: <strong>€0,23/km</strong> (2024/2025).</li>
-      <li>Opportuniteitskosten koop = gemiddeld gebonden kapitaal × ingesteld rendement%. Lease: geen kapitaalbinding.</li>
+      <li>Opportuniteitskosten koop = gemiddeld gebonden kapitaal × ingesteld rendement%. Lease: het vrijgehouden aankoopbedrag (kostprijs) rendeert volledig; dat voordeel (na VPB) wordt in mindering gebracht op de leasekosten.</li>
       <li>EV bijtelling 2025: <strong>17%</strong> op eerste €30.000 catalogusprijs, <strong>22%</strong> daarboven (auto-berekend).</li>
       <li>Afschrijving is economisch (lineair), niet fiscaal. BPM-teruggave, MIA/VAMIL en andere subsidies zijn <em>niet</em> meegenomen.</li>
       <li>Deze berekening is een vereenvoudiging en vervangt <em>geen</em> advies van een belastingadviseur.</li>
@@ -578,7 +578,7 @@ function scenario2(inp) {
 function scenario3(inp) {
   const { catalogusprijs, maandLease, leaseBrandstof, salarisDGA, bvWinst,
           priveKm, zakelijkeKm, verbruik, brandstofprijs,
-          bijtellingsPercentage, isEV } = inp;
+          bijtellingsPercentage, isEV, kostprijs, rendement } = inp;
 
   const vpbRate   = marginalVPB(bvWinst);
   const bijtelling = calcBijtellingAmount(catalogusprijs, isEV, bijtellingsPercentage);
@@ -590,12 +590,18 @@ function scenario3(inp) {
   const vpbSaving = grossBV * vpbRate;
   const btwCorr   = catalogusprijs * TAX.BTW_CORRECTION;
   const netBV     = grossBV * (1 - vpbRate) + btwCorr;
-  const total     = netBV + ibTax;
+
+  // Bij lease hoeft het aankoopbedrag niet vastgezet te worden. Het vrijgehouden
+  // kapitaal (kostprijs) kan renderen; die opbrengst verlaagt de effectieve kosten.
+  const oppGain    = kostprijs * (rendement / 100);
+  const oppGainNet = oppGain * (1 - vpbRate);
+
+  const total     = netBV + ibTax - oppGainNet;
 
   return {
     total,
     annual, fuel, grossBV, vpbSaving, btwCorr, netBV, bijtelling, ibTax, vpbRate,
-    leaseBrandstof
+    leaseBrandstof, oppGain, oppGainNet
   };
 }
 
@@ -699,6 +705,8 @@ function buildDetailTable(inp, s1, s2, s3) {
     s1.dep * (1 - vpb1), s2.dep, null);
   html += row(`Opportuniteitskosten <small style="color:var(--muted)">(${fmtPct(inp.rendement)} × gem. kapitaal)</small>`,
     s1.oppCost * (1 - vpb1), s2.oppCost, null);
+  html += row(`Rendement vrijgehouden kapitaal <small style="color:var(--muted)">(${fmtPct(inp.rendement)} × ${fmt(inp.kostprijs)}, na VPB)</small>`,
+    null, null, -s3.oppGainNet, 'neg');
   html += row('MRB',
     s1.mrb * (1 - vpb1), s2.mrb, null);
   html += row('Verzekering',
@@ -856,7 +864,8 @@ function updateCumulativeChart(inp, s1, s2, s3) {
 
   // S3: BV pays lease + optional fuel (both VPB-deductible) + BTW correction + bijtelling IB
   //     s3.fuel is already 0 when leaseBrandstof=true (see scenario3())
-  const run3 = (s3.annual + s3.fuel) * (1 - vpb3) + s3.btwCorr + s3.ibTax;
+  //     MINUS rendement op vrijgehouden kapitaal (niet nodig voor aankoop)
+  const run3 = (s3.annual + s3.fuel) * (1 - vpb3) + s3.btwCorr + s3.ibTax - s3.oppGainNet;
 
   // Build data points: [Start, Jaar 1 ... Jaar n, Na verkoop]
   const labels = ['Start'];
@@ -981,6 +990,11 @@ function updateBreakdownChart(inp, s1, s2, s3) {
       label: 'Km-verg. voordeel',
       data: [0, -s2.netBenefit, 0],
       backgroundColor: ['transparent','#f0fdf4','transparent']
+    },
+    {
+      label: 'Rendement vrijgehouden kapitaal',
+      data: [0, 0, -s3.oppGainNet],
+      backgroundColor: ['transparent','transparent','#d1fae5']
     }
   ];
   chartBreakdown.update('none');
