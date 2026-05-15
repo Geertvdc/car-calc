@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Zakelijk of Privé — DGA Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --s1: #2563eb; --s1-bg: #dbeafe; --s1-border: #93c5fd;
+      --s2: #16a34a; --s2-bg: #dcfce7; --s2-border: #86efac;
+      --s3: #d97706; --s3-bg: #fef3c7; --s3-border: #fcd34d;
+      --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0;
+      --text: #1e293b; --muted: #64748b; --radius: 12px;
+      --shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    /* ── Header ────────────────────────── */
+    header { background: linear-gradient(135deg,#1e3a5f,#2563eb); color:#fff; padding:28px 20px 24px; text-align:center; }
+    header h1 { font-size:26px; font-weight:700; margin-bottom:6px; }
+    header p { font-size:14px; opacity:.85; max-width:640px; margin:0 auto; }
+
+    /* ── Layout ────────────────────────── */
+    .container { max-width:1440px; margin:0 auto; padding:20px 16px 40px; }
+    .layout { display:grid; grid-template-columns:370px 1fr; gap:20px; align-items:start; }
+    @media(max-width:960px) { .layout { grid-template-columns:1fr; } }
+
+    /* ── Input panel ───────────────────── */
+    .inputs-panel { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow-y:auto; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; }
+    @media(max-width:960px) { .inputs-panel { position:static; max-height:none; overflow-y:visible; } }
+
+    /* ── Card ──────────────────────────── */
+    .card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--border); padding:16px; }
+    .card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+    .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .dot-s1 { background:var(--s1); }
+    .dot-s2 { background:var(--s2); }
+    .dot-s3 { background:var(--s3); }
+
+    /* ── Form elements ─────────────────── */
+    .form-group { margin-bottom:10px; }
+    .form-group:last-child { margin-bottom:0; }
+    label { display:block; font-size:12px; font-weight:600; margin-bottom:3px; }
+    .hint { font-size:11px; color:var(--muted); margin-top:2px; line-height:1.4; }
+    .input-wrap { position:relative; }
+    .input-pre { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none; }
+    .input-suf { position:absolute; right:9px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:12px; pointer-events:none; }
+    input[type=number] { width:100%; padding:7px 10px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; color:var(--text); background:#fafafa; transition:border-color .15s; -moz-appearance:textfield; }
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; }
+    input[type=number]:focus { outline:none; border-color:var(--s1); background:#fff; }
+    .has-pre input { padding-left:22px; }
+    .has-suf input { padding-right:36px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+
+    /* ── Toggle ────────────────────────── */
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .toggle-row label { margin-bottom:0; }
+    .switch { position:relative; width:42px; height:24px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; cursor:pointer; inset:0; background:#cbd5e1; border-radius:24px; transition:.2s; }
+    .slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+    .switch input:checked + .slider { background:var(--s1); }
+    .switch input:checked + .slider::before { transform:translateX(18px); }
+
+    /* ── Km slider ─────────────────────── */
+    .km-row { display:flex; align-items:center; gap:8px; margin-top:3px; }
+    .km-row input[type=range] { flex:1; cursor:pointer; accent-color:var(--s1); height:4px; }
+    .km-row input[type=number] { width:88px; flex-shrink:0; }
+
+    /* ── Results panel ─────────────────── */
+    .results-panel { display:flex; flex-direction:column; gap:16px; }
+
+    /* ── Scenario cards ────────────────── */
+    .scenario-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    @media(max-width:680px) { .scenario-cards { grid-template-columns:1fr; } }
+
+    .sc-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); border:2px solid var(--border); padding:16px 16px 14px; transition:border-color .2s,box-shadow .2s; }
+    .sc-card.winner { border-color:var(--s2); box-shadow:0 0 0 3px rgba(22,163,74,.12), var(--shadow); }
+    .sc-tag { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+    .sc-name { font-size:13px; font-weight:600; margin-bottom:12px; color:var(--text); }
+    .sc-amount { font-size:30px; font-weight:800; letter-spacing:-.5px; }
+    .sc-period { font-size:12px; color:var(--muted); margin-top:1px; }
+    .sc-divider { height:1px; background:var(--border); margin:10px 0; }
+    .sc-total { font-size:12px; color:var(--muted); }
+    .sc-total strong { color:var(--text); }
+    .sc-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; margin-top:6px; }
+
+    .s1 { color:var(--s1); } .s1-bg { background:var(--s1-bg); color:var(--s1); }
+    .s2 { color:var(--s2); } .s2-bg { background:var(--s2-bg); color:var(--s2); }
+    .s3 { color:var(--s3); } .s3-bg { background:var(--s3-bg); color:var(--s3); }
+
+    /* ── Best banner ───────────────────── */
+    .banner { background:var(--s2-bg); border:1.5px solid var(--s2-border); border-radius:var(--radius); padding:14px 18px; display:flex; align-items:center; gap:14px; }
+    .banner-icon { font-size:30px; }
+    .banner-title { font-size:15px; font-weight:700; color:var(--s2); }
+    .banner-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+
+    /* ── Detail table ──────────────────── */
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:9px 12px; background:#f8fafc; color:var(--muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-bottom:1.5px solid var(--border); white-space:nowrap; }
+    td { padding:9px 12px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+    tr:last-child td { border-bottom:none; }
+    .tr-total td { font-weight:700; border-top:1.5px solid var(--border); background:#f8fafc; }
+    .tr-sub td { font-size:12px; color:var(--muted); padding-top:4px; padding-bottom:4px; }
+    .tr-section td { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:#f8fafc; padding-top:10px; }
+    .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .pos { color:#dc2626; }
+    .neg { color:var(--s2); }
+
+    /* ── Tax info bar ──────────────────── */
+    .tax-bar { display:flex; gap:16px; flex-wrap:wrap; background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--muted); }
+    .tax-bar strong { color:var(--text); }
+
+    /* ── Charts ────────────────────────── */
+    .charts-section { margin-top:20px; }
+    .chart-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    @media(max-width:1100px) { .chart-grid { grid-template-columns:1fr 1fr; } }
+    @media(max-width:680px) { .chart-grid { grid-template-columns:1fr; } }
+
+    .chart-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--border); padding:18px; }
+    .chart-card h3 { font-size:14px; font-weight:700; margin-bottom:3px; }
+    .chart-card p { font-size:12px; color:var(--muted); margin-bottom:14px; }
+    .chart-wrap { position:relative; height:240px; }
+
+    /* ── Assumptions ───────────────────── */
+    .note { margin-top:20px; background:#fffbeb; border:1px solid #fde68a; border-radius:var(--radius); padding:14px 16px; font-size:12px; color:#92400e; }
+    .note strong { display:block; margin-bottom:6px; font-size:13px; }
+    .note ul { padding-left:18px; line-height:1.9; }
+
+    footer { text-align:center; padding:20px; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚗 Auto Zakelijk of Privé? — DGA Calculator</h1>
+  <p>Vergelijk drie opties voor een DGA: auto kopen via de BV, privé rijden met km-vergoeding, of operational lease via de BV. Inclusief bijtelling, VPB, opportuniteitskosten en BTW-correctie.</p>
+</header>
+
+<main class="container">
+  <div class="layout">
+
+    <!-- ══ INPUTS ══════════════════════════════════════════ -->
+    <div class="inputs-panel">
+
+      <!-- Sectie: Auto algemeen -->
+      <div class="card">
+        <div class="card-title">🚘 Auto gegevens</div>
+
+        <div class="form-group">
+          <label>Catalogusprijs (nieuwprijs incl. BTW/BPM)</label>
+          <div class="input-wrap has-pre">
+            <span class="input-pre">€</span>
+            <input type="number" id="catalogusprijs" value="45000" min="0" step="500">
+          </div>
+          <div class="hint">Officiële nieuwprijs — grondslag voor bijtelling</div>
+        </div>
+
+        <div class="form-group">
+          <div class="toggle-row">
+            <label>Elektrische auto (EV)</label>
+            <label class="switch">
+              <input type="checkbox" id="isEV">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="hint">Bij EV: verlaagd bijtellingspercentage op eerste €30.000</div>
+        </div>
+
+        <div class="form-group">
+          <label>Bijtellingspercentage</label>
+          <div class="input-wrap has-suf">
+            <input type="number" id="bijtellingsPercentage" value="22" min="0" max="35" step="0.5">
+            <span class="input-suf">%</span>
+          </div>
+          <div class="hint" id="bijtelling-hint">Standaard 22%. EV 2025: 17% op €0–30.000, 22% daarboven (auto-berekend bij EV).</div>
+        </div>
+      </div>
+
+      <!-- Sectie: Koop details -->
+      <div class="card">
+        <div class="card-title"><span class="dot dot-s1"></span><span class="dot dot-s2"></span>&nbsp;Koop — scenario 1 &amp; 2</div>
+
+        <div class="grid2">
+          <div class="form-group">
+            <label>Kostprijs aanschaf</label>
+            <div class="input-wrap has-pre">
+              <span class="input-pre">€</span>
+              <input type="number" id="kostprijs" value="42000" min="0" step="500">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Restwaarde na looptijd</label>
+            <div class="input-wrap has-pre">
+              <span class="input-pre">€</span>
+              <input type="number" id="restwaarde" value="15000" min="0" step="500">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Geplande gebruiksduur</label>
+          <div class="input-wrap has-suf">
+            <input type="number" id="gebruiksduur" value="4" min="1" max="15" step="1">
+            <span class="input-suf">jaar</span>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="form-group">
+            <label>MRB (motorrijtuigenbelasting)</label>
+            <div class="input-wrap has-pre has-suf">
+              <span class="input-pre">€</span>
+              <input type="number" id="mrb" value="800" min="0" step="50">
+              <span class="input-suf">/jr</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Verzekering</label>
+            <div class="input-wrap has-pre has-suf">
+              <span class="input-pre">€</span>
+              <input type="number" id="verzekering" value="1600" min="0" step="100">
+              <span class="input-suf">/jr</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="form-group">
+            <label>Onderhoud (incl. BTW)</label>
+            <div class="input-wrap has-pre has-suf">
+              <span class="input-pre">€</span>
+              <input type="number" id="onderhoud" value="1200" min="0" step="100">
+              <span class="input-suf">/jr</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sectie: Lease -->
+      <div class="card">
+        <div class="card-title"><span class="dot dot-s3"></span> Lease — scenario 3</div>
+
+        <div class="form-group">
+          <label>Maandelijkse leaseprijs (all-in)</label>
+          <div class="input-wrap has-pre has-suf">
+            <span class="input-pre">€</span>
+            <input type="number" id="maandLease" value="750" min="0" step="25">
+            <span class="input-suf">/mnd</span>
+          </div>
+          <div class="hint">All-in: MRB, verzekering, onderhoud inbegrepen</div>
+        </div>
+
+        <div class="form-group">
+          <div class="toggle-row">
+            <label>Brandstof inbegrepen in lease</label>
+            <label class="switch">
+              <input type="checkbox" id="leaseBrandstof">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sectie: Belasting & Financiering -->
+      <div class="card">
+        <div class="card-title">💰 Belasting &amp; Financiering</div>
+
+        <div class="form-group">
+          <label>Bruto jaarsalaris DGA</label>
+          <div class="input-wrap has-pre">
+            <span class="input-pre">€</span>
+            <input type="number" id="salarisDGA" value="60000" min="0" step="1000">
+          </div>
+          <div class="hint">Exclusief bijtelling. Bepaalt marginaal IB-tarief op bijtelling.</div>
+        </div>
+
+        <div class="form-group">
+          <label>Verwachte BV-winst (vóór VPB)</label>
+          <div class="input-wrap has-pre">
+            <span class="input-pre">€</span>
+            <input type="number" id="bvWinst" value="150000" min="0" step="5000">
+          </div>
+          <div class="hint">Bepaalt VPB-tarief (19% t/m €200.000, 25,8% daarboven).</div>
+        </div>
+
+        <div class="form-group">
+          <label>Rendement / rente</label>
+          <div class="input-wrap has-suf">
+            <input type="number" id="rendement" value="4" min="0" max="20" step="0.5">
+            <span class="input-suf">%</span>
+          </div>
+          <div class="hint">Lening: rente die u betaalt. Eigen geld: rendement dat u elders zou maken (beleggingen/spaarrekening). Berekent opportuniteitskosten van gebonden kapitaal bij koop.</div>
+        </div>
+      </div>
+
+      <!-- Sectie: Km & Brandstof -->
+      <div class="card">
+        <div class="card-title">⛽ Kilometers &amp; Brandstof</div>
+
+        <div class="grid2">
+          <div class="form-group">
+            <label>Brandstofprijs</label>
+            <div class="input-wrap has-pre has-suf">
+              <span class="input-pre">€</span>
+              <input type="number" id="brandstofprijs" value="1.90" min="0" step="0.05">
+              <span class="input-suf">/L</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Verbruik</label>
+            <div class="input-wrap has-suf">
+              <input type="number" id="verbruik" value="7" min="0.1" step="0.5">
+              <span class="input-suf">L/100</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Privékilometers per jaar</label>
+          <div class="km-row">
+            <input type="range" id="priveKmSlider" min="0" max="50000" step="1000" value="10000">
+            <div class="input-wrap has-suf" style="width:96px;flex-shrink:0">
+              <input type="number" id="priveKm" value="10000" min="0" step="1000">
+              <span class="input-suf">km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Zakelijke km per jaar (incl. woon-werk)</label>
+          <div class="km-row">
+            <input type="range" id="zakKmSlider" min="0" max="80000" step="1000" value="20000">
+            <div class="input-wrap has-suf" style="width:96px;flex-shrink:0">
+              <input type="number" id="zakelijkeKm" value="20000" min="0" step="1000">
+              <span class="input-suf">km</span>
+            </div>
+          </div>
+          <div class="hint">Belastingvrije vergoeding: €0,23/km</div>
+        </div>
+      </div>
+
+    </div><!-- /inputs-panel -->
+
+    <!-- ══ RESULTS ════════════════════════════════════════ -->
+    <div class="results-panel">
+
+      <!-- Tax info bar -->
+      <div class="tax-bar" id="tax-bar">
+        <span>VPB: <strong id="vpb-display">—</strong></span>
+        <span>Marginaal IB: <strong id="ib-display">—</strong></span>
+        <span>Bijtelling: <strong id="bij-display">—</strong></span>
+        <span>BTW-correctie: <strong id="btw-display">—</strong></span>
+      </div>
+
+      <!-- 3 scenario cards -->
+      <div class="scenario-cards">
+        <div class="sc-card" id="card-s1">
+          <div class="sc-tag s1">🏢 Scenario 1</div>
+          <div class="sc-name">Koop via BV</div>
+          <div class="sc-amount s1" id="s1-amount">—</div>
+          <div class="sc-period">per jaar</div>
+          <div class="sc-divider"></div>
+          <div class="sc-total">Totaal over looptijd: <strong id="s1-total">—</strong></div>
+          <div id="s1-badge"></div>
+        </div>
+        <div class="sc-card" id="card-s2">
+          <div class="sc-tag s2">🚗 Scenario 2</div>
+          <div class="sc-name">Auto in privé</div>
+          <div class="sc-amount s2" id="s2-amount">—</div>
+          <div class="sc-period">per jaar</div>
+          <div class="sc-divider"></div>
+          <div class="sc-total">Totaal over looptijd: <strong id="s2-total">—</strong></div>
+          <div id="s2-badge"></div>
+        </div>
+        <div class="sc-card" id="card-s3">
+          <div class="sc-tag s3">📄 Scenario 3</div>
+          <div class="sc-name">Operational Lease BV</div>
+          <div class="sc-amount s3" id="s3-amount">—</div>
+          <div class="sc-period">per jaar</div>
+          <div class="sc-divider"></div>
+          <div class="sc-total">Totaal over looptijd: <strong id="s3-total">—</strong></div>
+          <div id="s3-badge"></div>
+        </div>
+      </div>
+
+      <!-- Best banner -->
+      <div class="banner" id="best-banner">
+        <div class="banner-icon">✅</div>
+        <div>
+          <div class="banner-title" id="banner-title">—</div>
+          <div class="banner-sub" id="banner-sub">—</div>
+        </div>
+      </div>
+
+      <!-- Detail table -->
+      <div class="card">
+        <div class="card-title">📋 Kostenspecificatie per jaar</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Kostenpost</th>
+                <th class="num" style="color:var(--s1)">Koop BV</th>
+                <th class="num" style="color:var(--s2)">Privé</th>
+                <th class="num" style="color:var(--s3)">Lease BV</th>
+              </tr>
+            </thead>
+            <tbody id="detail-tbody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /results-panel -->
+  </div><!-- /layout -->
+
+  <!-- ══ CHARTS ═════════════════════════════════════════════ -->
+  <div class="charts-section">
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>📈 Werkelijke kasstromen</h3>
+        <p>Cumulatief geld uit/in: startinvestering op dag 0, jaarlijkse kosten, restwaarde bij verkoop</p>
+        <div class="chart-wrap"><canvas id="chartCumulative"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🎯 Break-even analyse</h3>
+        <p>Jaarkosten (economisch, incl. opportuniteitskosten) per aantal privékilometers</p>
+        <div class="chart-wrap"><canvas id="chartBreakeven"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>📊 Kostenverdeling</h3>
+        <p>Samenstelling van de jaarkosten per scenario</p>
+        <div class="chart-wrap"><canvas id="chartBreakdown"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assumptions -->
+  <div class="note">
+    <strong>⚠️ Uitgangspunten &amp; beperkingen</strong>
+    <ul>
+      <li>Berekening geldt voor een <strong>DGA (directeur-grootaandeelhouder)</strong> met een BV of NV.</li>
+      <li>VPB-tarieven 2025: <strong>19%</strong> over de eerste €200.000 winst, <strong>25,8%</strong> daarboven (marginaal tarief).</li>
+      <li>IB box 1: <strong>36,97%</strong> t/m €75.518, <strong>49,5%</strong> daarboven (marginaal tarief op bijtelling).</li>
+      <li>BTW-correctie privégebruik auto: <strong>2,7%</strong> van catalogusprijs per jaar (forfaitair) voor BV-scenario's.</li>
+      <li>Belastingvrije km-vergoeding voor privé-scenario: <strong>€0,23/km</strong> (2024/2025).</li>
+      <li>Opportuniteitskosten koop = gemiddeld gebonden kapitaal × ingesteld rendement%. Lease: geen kapitaalbinding.</li>
+      <li>EV bijtelling 2025: <strong>17%</strong> op eerste €30.000 catalogusprijs, <strong>22%</strong> daarboven (auto-berekend).</li>
+      <li>Afschrijving is economisch (lineair), niet fiscaal. BPM-teruggave, MIA/VAMIL en andere subsidies zijn <em>niet</em> meegenomen.</li>
+      <li>Deze berekening is een vereenvoudiging en vervangt <em>geen</em> advies van een belastingadviseur.</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  © 2025 · Auto DGA Calculator · Tarieven 2024/2025 · Geen rechten ontleenbaar aan deze berekening
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   CONSTANTS — Dutch tax law 2024/2025
+═══════════════════════════════════════════════════ */
+const TAX = {
+  VPB_BRACKET: 200000,
+  VPB_LOW: 0.19,
+  VPB_HIGH: 0.258,
+  IB_BRACKET: 75518,
+  IB_LOW: 0.3697,
+  IB_HIGH: 0.495,
+  BTW_CORRECTION: 0.027,
+  KM_VERG: 0.23,
+  EV_BRACKET: 30000,
+  EV_RATE: 0.17,  // 2025
+  STD_RATE: 0.22
+};
+
+/* ═══════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════ */
+const fmt = n => '€\u202F' + Math.round(n).toLocaleString('nl-NL');
+const fmtPct = p => p.toFixed(2).replace('.', ',') + '%';
+const v = id => parseFloat(document.getElementById(id).value) || 0;
+const chk = id => document.getElementById(id).checked;
+
+function marginalVPB(bvWinst) {
+  return bvWinst > TAX.VPB_BRACKET ? TAX.VPB_HIGH : TAX.VPB_LOW;
+}
+
+function ibOnBijtelling(salaris, bijtelling) {
+  const b = TAX.IB_BRACKET, r1 = TAX.IB_LOW, r2 = TAX.IB_HIGH;
+  if (salaris >= b) return bijtelling * r2;
+  if (salaris + bijtelling <= b) return bijtelling * r1;
+  return (b - salaris) * r1 + (salaris + bijtelling - b) * r2;
+}
+
+function marginalIBRate(salaris, bijtelling) {
+  const b = TAX.IB_BRACKET;
+  if (salaris >= b) return TAX.IB_HIGH;
+  if (salaris + bijtelling <= b) return TAX.IB_LOW;
+  // Blended
+  const low = (b - salaris) * TAX.IB_LOW;
+  const high = (salaris + bijtelling - b) * TAX.IB_HIGH;
+  return (low + high) / bijtelling;
+}
+
+function calcBijtellingAmount(catalogusprijs, isEV, manualPct) {
+  if (isEV) {
+    return Math.min(catalogusprijs, TAX.EV_BRACKET) * TAX.EV_RATE
+         + Math.max(0, catalogusprijs - TAX.EV_BRACKET) * TAX.STD_RATE;
+  }
+  return catalogusprijs * (manualPct / 100);
+}
+
+function calcFuel(priveKm, zakelijkeKm, verbruik, brandstofprijs) {
+  return (priveKm + zakelijkeKm) / 100 * verbruik * brandstofprijs;
+}
+
+/* ═══════════════════════════════════════════════════
+   SCENARIOS
+═══════════════════════════════════════════════════ */
+function scenario1(inp) {
+  const { catalogusprijs, kostprijs, restwaarde, gebruiksduur, rendement,
+          mrbVerzekering, onderhoud, salarisDGA, bvWinst, priveKm, zakelijkeKm,
+          verbruik, brandstofprijs, bijtellingsPercentage, isEV } = inp;
+
+  const vpbRate   = marginalVPB(bvWinst);
+  const bijtelling = calcBijtellingAmount(catalogusprijs, isEV, bijtellingsPercentage);
+  const ibTax     = ibOnBijtelling(salarisDGA, bijtelling);
+
+  const dep       = (kostprijs - restwaarde) / gebruiksduur;
+  const avgCap    = (kostprijs + restwaarde) / 2;
+  const oppCost   = avgCap * (rendement / 100);
+  const fuel      = calcFuel(priveKm, zakelijkeKm, verbruik, brandstofprijs);
+
+  const grossBV   = dep + oppCost + mrbVerzekering + onderhoud + fuel;
+  const vpbSaving = grossBV * vpbRate;
+  const btwCorr   = catalogusprijs * TAX.BTW_CORRECTION;
+  const netBV     = grossBV * (1 - vpbRate) + btwCorr;
+  const total     = netBV + ibTax;
+
+  return {
+    total,
+    dep, oppCost, mrb: inp.mrb, verzekering: inp.verzekering, mrbVerzekering: inp.mrbVerzekering, onderhoud, fuel,
+    grossBV, vpbSaving, btwCorr, netBV, bijtelling, ibTax, vpbRate
+  };
+}
+
+function scenario2(inp) {
+  const { kostprijs, restwaarde, gebruiksduur, rendement,
+          mrbVerzekering, onderhoud, bvWinst, priveKm, zakelijkeKm,
+          verbruik, brandstofprijs } = inp;
+
+  const vpbRate   = marginalVPB(bvWinst);
+  const dep       = (kostprijs - restwaarde) / gebruiksduur;
+  const avgCap    = (kostprijs + restwaarde) / 2;
+  const oppCost   = avgCap * (rendement / 100);
+  const fuel      = calcFuel(priveKm, zakelijkeKm, verbruik, brandstofprijs);
+
+  const grossCar  = dep + oppCost + mrbVerzekering + onderhoud + fuel;
+  const kmVerg    = zakelijkeKm * TAX.KM_VERG;
+  // Household net: DGA pays full car costs, receives km-verg tax-free;
+  // BV saves VPB on reimbursement → net household benefit = kmVerg × vpbRate
+  const netBenefit = kmVerg * vpbRate;
+  const total     = grossCar - netBenefit;
+
+  return {
+    total,
+    dep, oppCost, mrb: inp.mrb, verzekering: inp.verzekering, mrbVerzekering, onderhoud, fuel,
+    grossCar, kmVerg, netBenefit, vpbRate
+  };
+}
+
+function scenario3(inp) {
+  const { catalogusprijs, maandLease, leaseBrandstof, salarisDGA, bvWinst,
+          priveKm, zakelijkeKm, verbruik, brandstofprijs,
+          bijtellingsPercentage, isEV } = inp;
+
+  const vpbRate   = marginalVPB(bvWinst);
+  const bijtelling = calcBijtellingAmount(catalogusprijs, isEV, bijtellingsPercentage);
+  const ibTax     = ibOnBijtelling(salarisDGA, bijtelling);
+
+  const annual    = maandLease * 12;
+  const fuel      = leaseBrandstof ? 0 : calcFuel(priveKm, zakelijkeKm, verbruik, brandstofprijs);
+  const grossBV   = annual + fuel;
+  const vpbSaving = grossBV * vpbRate;
+  const btwCorr   = catalogusprijs * TAX.BTW_CORRECTION;
+  const netBV     = grossBV * (1 - vpbRate) + btwCorr;
+  const total     = netBV + ibTax;
+
+  return {
+    total,
+    annual, fuel, grossBV, vpbSaving, btwCorr, netBV, bijtelling, ibTax, vpbRate,
+    leaseBrandstof
+  };
+}
+
+/* ═══════════════════════════════════════════════════
+   GET ALL INPUTS
+═══════════════════════════════════════════════════ */
+function getInputs() {
+  return {
+    catalogusprijs:       v('catalogusprijs'),
+    isEV:                 chk('isEV'),
+    bijtellingsPercentage:v('bijtellingsPercentage'),
+    kostprijs:            v('kostprijs'),
+    restwaarde:           v('restwaarde'),
+    gebruiksduur:         Math.max(1, v('gebruiksduur')),
+    mrbVerzekering:       v('mrb') + v('verzekering'),
+    mrb:                  v('mrb'),
+    verzekering:          v('verzekering'),
+    onderhoud:            v('onderhoud'),
+    maandLease:           v('maandLease'),
+    leaseBrandstof:       chk('leaseBrandstof'),
+    salarisDGA:           v('salarisDGA'),
+    bvWinst:              v('bvWinst'),
+    rendement:            v('rendement'),
+    brandstofprijs:       v('brandstofprijs'),
+    verbruik:             v('verbruik'),
+    priveKm:              v('priveKm'),
+    zakelijkeKm:          v('zakelijkeKm')
+  };
+}
+
+/* ═══════════════════════════════════════════════════
+   UI UPDATE
+═══════════════════════════════════════════════════ */
+function updateResults() {
+  const inp = getInputs();
+  const s1 = scenario1(inp);
+  const s2 = scenario2(inp);
+  const s3 = scenario3(inp);
+  const years = inp.gebruiksduur;
+
+  // Tax info bar
+  document.getElementById('vpb-display').textContent = fmtPct(s1.vpbRate * 100);
+  const effIB = marginalIBRate(inp.salarisDGA, s1.bijtelling) * 100;
+  document.getElementById('ib-display').textContent = fmtPct(effIB);
+  document.getElementById('bij-display').textContent = fmt(s1.bijtelling) + '/jr';
+  document.getElementById('btw-display').textContent = fmt(s1.btwCorr) + '/jr';
+
+  // Cards
+  const scores = [
+    { id: 's1', val: s1.total, label: 'Koop via BV',    cls: 's1' },
+    { id: 's2', val: s2.total, label: 'Auto in privé',   cls: 's2' },
+    { id: 's3', val: s3.total, label: 'Operational Lease', cls: 's3' }
+  ];
+  const sorted = [...scores].sort((a,b) => a.val - b.val);
+  const winner = sorted[0];
+
+  scores.forEach(sc => {
+    document.getElementById(`${sc.id}-amount`).textContent = fmt(sc.val);
+    document.getElementById(`${sc.id}-total`).textContent  = fmt(sc.val * years);
+    const card = document.getElementById(`card-${sc.id}`);
+    card.classList.toggle('winner', sc.id === winner.id);
+    const diff = sc.val - winner.val;
+    const badge = document.getElementById(`${sc.id}-badge`);
+    if (sc.id === winner.id) {
+      badge.innerHTML = `<span class="sc-badge ${sc.cls}-bg">✓ Voordeligst</span>`;
+    } else {
+      badge.innerHTML = `<span class="sc-badge" style="background:#fee2e2;color:#dc2626">+${fmt(diff)}/jr</span>`;
+    }
+  });
+
+  // Banner
+  document.getElementById('banner-title').textContent = `Voordeligste optie: ${winner.label}`;
+  const worst = sorted[sorted.length - 1];
+  document.getElementById('banner-sub').textContent =
+    `Besparing t.o.v. duurste (${worst.label}): ${fmt(worst.val - winner.val)} per jaar · ${fmt((worst.val - winner.val) * years)} over ${years} jaar`;
+
+  // Detail table
+  buildDetailTable(inp, s1, s2, s3);
+
+  // Charts
+  updateCharts(inp, s1, s2, s3);
+}
+
+/* ═══════════════════════════════════════════════════
+   DETAIL TABLE
+═══════════════════════════════════════════════════ */
+function row(label, v1, v2, v3, cls = '') {
+  const f = x => x === null ? '<td class="num" style="color:#cbd5e1">—</td>' : `<td class="num ${cls}">${fmt(x)}</td>`;
+  return `<tr><td>${label}</td>${f(v1)}${f(v2)}${f(v3)}</tr>`;
+}
+function sectionRow(label) {
+  return `<tr class="tr-section"><td colspan="4">${label}</td></tr>`;
+}
+
+function buildDetailTable(inp, s1, s2, s3) {
+  const vpb1 = s1.vpbRate, vpb2 = s2.vpbRate, vpb3 = s3.vpbRate;
+  const tbody = document.getElementById('detail-tbody');
+
+  let html = sectionRow('Autokosten (na VPB-aftrek voor BV; bruto voor privé)');
+  html += row(`Afschrijving <small style="color:var(--muted)">(${fmt(s1.dep)}/jr bruto)</small>`,
+    s1.dep * (1 - vpb1), s2.dep, null);
+  html += row(`Opportuniteitskosten <small style="color:var(--muted)">(${fmtPct(inp.rendement)} × gem. kapitaal)</small>`,
+    s1.oppCost * (1 - vpb1), s2.oppCost, null);
+  html += row('MRB',
+    s1.mrb * (1 - vpb1), s2.mrb, null);
+  html += row('Verzekering',
+    s1.verzekering * (1 - vpb1), s2.verzekering, null);
+  html += row('Onderhoud',
+    s1.onderhoud * (1 - vpb1), s2.onderhoud, null);
+
+  const fuelLabel = inp.leaseBrandstof ? 'Brandstof (inbegrepen lease)' : 'Brandstof';
+  html += row(fuelLabel,
+    s1.fuel * (1 - vpb1),
+    s2.fuel,
+    s3.leaseBrandstof ? null : s3.fuel * (1 - vpb3));
+
+  html += row('Leasekosten (na VPB)',
+    null, null, s3.annual * (1 - vpb3));
+
+  html += sectionRow('Belasting & correcties');
+  html += row('BTW-correctie privégebruik (2,7% catalogusprijs)',
+    s1.btwCorr, null, s3.btwCorr);
+  html += row('Bijtelling — inkomstenbelasting',
+    s1.ibTax, null, s3.ibTax);
+
+  html += sectionRow('Km-vergoeding voordeel (privé-scenario)');
+  html += row(`Belastingvrije km-verg. van BV (${inp.zakelijkeKm.toLocaleString('nl-NL')} km × €0,23)`,
+    null, -s2.kmVerg, null, 'neg');
+  html += `<tr class="tr-sub"><td>waarvan VPB-besparing BV (netto voordeel huishouden)</td><td class="num">—</td><td class="num neg">−${fmt(s2.netBenefit)}</td><td class="num">—</td></tr>`;
+
+  const total1 = s1.total, total2 = s2.total, total3 = s3.total;
+  html += `<tr class="tr-total">
+    <td>Totaal per jaar</td>
+    <td class="num s1">${fmt(total1)}</td>
+    <td class="num s2">${fmt(total2)}</td>
+    <td class="num s3">${fmt(total3)}</td>
+  </tr>`;
+  html += `<tr class="tr-sub">
+    <td>Totaal over ${inp.gebruiksduur} jaar</td>
+    <td class="num">${fmt(total1 * inp.gebruiksduur)}</td>
+    <td class="num">${fmt(total2 * inp.gebruiksduur)}</td>
+    <td class="num">${fmt(total3 * inp.gebruiksduur)}</td>
+  </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════════════════ */
+let chartCumulative, chartBreakeven, chartBreakdown;
+
+const COLORS = {
+  s1: 'rgb(37,99,235)', s1a: 'rgba(37,99,235,.15)',
+  s2: 'rgb(22,163,74)', s2a: 'rgba(22,163,74,.15)',
+  s3: 'rgb(217,119,6)', s3a: 'rgba(217,119,6,.15)'
+};
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'top', labels: { boxWidth: 12, padding: 14, font: { size: 12 } } },
+    tooltip: {
+      callbacks: {
+        label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? ctx.parsed)}`
+      }
+    }
+  },
+  scales: {
+    x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+    y: {
+      grid: { color: '#f1f5f9' },
+      ticks: {
+        font: { size: 11 },
+        callback: v => '€' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)
+      }
+    }
+  }
+};
+
+function initCharts() {
+  Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
+
+  const ctx1 = document.getElementById('chartCumulative').getContext('2d');
+  chartCumulative = new Chart(ctx1, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      ...chartDefaults,
+      plugins: { ...chartDefaults.plugins,
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
+      }
+    }
+  });
+
+  const ctx2 = document.getElementById('chartBreakeven').getContext('2d');
+  chartBreakeven = new Chart(ctx2, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      ...chartDefaults,
+      plugins: { ...chartDefaults.plugins,
+        tooltip: {
+          callbacks: {
+            title: items => `${Number(items[0].label).toLocaleString('nl-NL')} privé km`,
+            label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}/jr`
+          }
+        }
+      },
+      scales: {
+        ...chartDefaults.scales,
+        x: { ...chartDefaults.scales.x,
+          title: { display: true, text: 'Privékilometers / jaar', font: { size: 11 } },
+          ticks: { font: { size: 10 }, callback: v => v.toLocaleString('nl-NL') + ' km' }
+        }
+      }
+    }
+  });
+
+  const ctx3 = document.getElementById('chartBreakdown').getContext('2d');
+  chartBreakdown = new Chart(ctx3, {
+    type: 'bar',
+    data: { labels: [], datasets: [] },
+    options: {
+      ...chartDefaults,
+      plugins: { ...chartDefaults.plugins,
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { ...chartDefaults.scales.x, stacked: true },
+        y: { ...chartDefaults.scales.y, stacked: true }
+      }
+    }
+  });
+}
+
+function updateCharts(inp, s1, s2, s3) {
+  updateCumulativeChart(inp, s1, s2, s3);
+  updateBreakevenChart(inp, s1, s2, s3);
+  updateBreakdownChart(inp, s1, s2, s3);
+}
+
+function updateCumulativeChart(inp, s1, s2, s3) {
+  const years = inp.gebruiksduur;
+  const vpb1 = s1.vpbRate, vpb3 = s3.vpbRate;
+
+  // Annual running cash costs (EXCLUDING depreciation & opp cost — those become the upfront/final values)
+  // S1: BV pays running costs (VPB-deductible) + BTW correction + bijtelling IB
+  //     MINUS the annual VPB tax saving on depreciation (dep × vpb = cash saving each year)
+  const run1 = (s1.fuel + inp.mrbVerzekering + inp.onderhoud) * (1 - vpb1)
+             + s1.btwCorr + s1.ibTax
+             - s1.dep * vpb1;   // VPB saving on depreciation = cash inflow each year
+
+  // S2: DGA pays all running costs privately; receives km-reimb tax-free from BV
+  //     BV saves VPB on km-reimb → net household benefit = kmVerg × vpbRate
+  const run2 = (s2.fuel + inp.mrbVerzekering + inp.onderhoud) - s2.kmVerg * s2.vpbRate;
+
+  // S3: BV pays lease + optional fuel (both VPB-deductible) + BTW correction + bijtelling IB
+  //     s3.fuel is already 0 when leaseBrandstof=true (see scenario3())
+  const run3 = (s3.annual + s3.fuel) * (1 - vpb3) + s3.btwCorr + s3.ibTax;
+
+  // Build data points: [Start, Jaar 1 ... Jaar n, Na verkoop]
+  const labels = ['Start'];
+  for (let i = 1; i <= years; i++) labels.push(`Jaar ${i}`);
+  labels.push('Na verkoop');
+
+  const d1 = [inp.kostprijs];   // BV pays upfront on day 0
+  const d2 = [inp.kostprijs];   // DGA pays privately on day 0
+  const d3 = [0];               // Lease: no upfront payment
+
+  for (let yr = 1; yr <= years; yr++) {
+    d1.push(d1[yr - 1] + run1);
+    d2.push(d2[yr - 1] + run2);
+    d3.push(d3[yr - 1] + run3);
+  }
+
+  // Final point: recover restwaarde (koop scenarios only)
+  d1.push(d1[years] - inp.restwaarde);
+  d2.push(d2[years] - inp.restwaarde);
+  d3.push(d3[years]); // lease: no residual value
+
+  chartCumulative.data.labels = labels;
+  chartCumulative.data.datasets = [
+    {
+      label: 'Koop via BV', data: d1,
+      borderColor: COLORS.s1, backgroundColor: COLORS.s1a,
+      borderWidth: 2.5, fill: false, tension: 0,
+      pointRadius: d1.map((_, i) => (i === 0 || i === d1.length - 1) ? 6 : 3),
+      pointBackgroundColor: COLORS.s1
+    },
+    {
+      label: 'Auto in privé', data: d2,
+      borderColor: COLORS.s2, backgroundColor: COLORS.s2a,
+      borderWidth: 2.5, fill: false, tension: 0,
+      pointRadius: d2.map((_, i) => (i === 0 || i === d2.length - 1) ? 6 : 3),
+      pointBackgroundColor: COLORS.s2
+    },
+    {
+      label: 'Operational Lease', data: d3,
+      borderColor: COLORS.s3, backgroundColor: COLORS.s3a,
+      borderWidth: 2.5, fill: false, tension: 0,
+      pointRadius: d3.map((_, i) => (i === 0 || i === d3.length - 1) ? 6 : 3),
+      pointBackgroundColor: COLORS.s3
+    }
+  ];
+  chartCumulative.update('none');
+}
+
+function updateBreakevenChart(inp, s1r, s2r, s3r) {
+  const maxKm = 60000;
+  const step  = 2000;
+  const kmValues = Array.from({length: maxKm / step + 1}, (_, i) => i * step);
+
+  const calc1 = (pk) => scenario1({...inp, priveKm: pk}).total;
+  const calc2 = (pk) => scenario2({...inp, priveKm: pk}).total;
+  const calc3 = (pk) => scenario3({...inp, priveKm: pk}).total;
+
+  chartBreakeven.data.labels = kmValues;
+  chartBreakeven.data.datasets = [
+    { label: 'Koop via BV',       data: kmValues.map(calc1), borderColor: COLORS.s1, backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0, tension: .3 },
+    { label: 'Auto in privé',     data: kmValues.map(calc2), borderColor: COLORS.s2, backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0, tension: .3 },
+    { label: 'Operational Lease', data: kmValues.map(calc3), borderColor: COLORS.s3, backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 0, tension: .3 }
+  ];
+
+  // Vertical line at current privé km
+  chartBreakeven.options.plugins.annotation = undefined;
+  chartBreakeven.update('none');
+}
+
+function updateBreakdownChart(inp, s1, s2, s3) {
+  const vpb1 = s1.vpbRate, vpb3 = s3.vpbRate;
+  const leaseFuel = s3.leaseBrandstof ? 0 : s3.fuel * (1 - vpb3);
+
+  chartBreakdown.data.labels = ['Koop via BV', 'Auto in privé', 'Lease via BV'];
+  chartBreakdown.data.datasets = [
+    {
+      label: 'Afschrijving',
+      data: [s1.dep * (1-vpb1), s2.dep, 0],
+      backgroundColor: ['#bfdbfe','#bbf7d0','#fde68a']
+    },
+    {
+      label: 'Opportuniteitskosten',
+      data: [s1.oppCost * (1-vpb1), s2.oppCost, 0],
+      backgroundColor: ['#93c5fd','#86efac','#fcd34d']
+    },
+    {
+      label: 'MRB',
+      data: [s1.mrb * (1-vpb1), s2.mrb, 0],
+      backgroundColor: ['#60a5fa','#4ade80','#fbbf24']
+    },
+    {
+      label: 'Verzekering',
+      data: [s1.verzekering * (1-vpb1), s2.verzekering, 0],
+      backgroundColor: ['#38bdf8','#34d399','#fb923c']
+    },
+    {
+      label: 'Onderhoud',
+      data: [s1.onderhoud * (1-vpb1), s2.onderhoud, 0],
+      backgroundColor: ['#3b82f6','#22c55e','#f59e0b']
+    },
+    {
+      label: 'Brandstof',
+      data: [s1.fuel * (1-vpb1), s2.fuel, leaseFuel],
+      backgroundColor: ['#2563eb','#16a34a','#d97706']
+    },
+    {
+      label: 'Leasekosten',
+      data: [0, 0, s3.annual * (1-vpb3)],
+      backgroundColor: ['#1d4ed8','#15803d','#b45309']
+    },
+    {
+      label: 'BTW-correctie',
+      data: [s1.btwCorr, 0, s3.btwCorr],
+      backgroundColor: ['#1e40af','#166534','#92400e']
+    },
+    {
+      label: 'Bijtelling (IB)',
+      data: [s1.ibTax, 0, s3.ibTax],
+      backgroundColor: ['#1e3a8a','#14532d','#78350f']
+    },
+    {
+      label: 'Km-verg. voordeel',
+      data: [0, -s2.netBenefit, 0],
+      backgroundColor: ['transparent','#f0fdf4','transparent']
+    }
+  ];
+  chartBreakdown.update('none');
+}
+
+/* ═══════════════════════════════════════════════════
+   EV TOGGLE — auto-set bijtelling %
+═══════════════════════════════════════════════════ */
+function updateBijtellingSuggestion() {
+  const isEV = chk('isEV');
+  const catprijs = v('catalogusprijs');
+  const field = document.getElementById('bijtellingsPercentage');
+  const hint = document.getElementById('bijtelling-hint');
+  if (isEV) {
+    const amount = Math.min(catprijs, TAX.EV_BRACKET) * TAX.EV_RATE
+                 + Math.max(0, catprijs - TAX.EV_BRACKET) * TAX.STD_RATE;
+    const effPct = catprijs > 0 ? (amount / catprijs * 100) : TAX.EV_RATE * 100;
+    field.value = effPct.toFixed(2);
+    hint.textContent = `EV 2025: 17% op €0–€30.000, 22% daarboven. Effectief: ${effPct.toFixed(1)}% (auto-berekend).`;
+  } else {
+    field.value = '22';
+    hint.textContent = 'Standaard 22%. Youngtimer: 35%. Pas aan indien van toepassing.';
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   SLIDER ↔ NUMBER SYNC
+═══════════════════════════════════════════════════ */
+function syncSlider(sliderId, numId) {
+  const slider = document.getElementById(sliderId);
+  const num    = document.getElementById(numId);
+  slider.addEventListener('input', () => { num.value = slider.value; updateResults(); });
+  num.addEventListener('input',    () => { slider.value = num.value; updateResults(); });
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initCharts();
+
+  // Sync sliders
+  syncSlider('priveKmSlider', 'priveKm');
+  syncSlider('zakKmSlider',   'zakelijkeKm');
+
+  // EV toggle
+  document.getElementById('isEV').addEventListener('change', () => {
+    updateBijtellingSuggestion();
+    updateResults();
+  });
+  document.getElementById('catalogusprijs').addEventListener('input', () => {
+    if (chk('isEV')) updateBijtellingSuggestion();
+    updateResults();
+  });
+
+  // All other inputs
+  document.querySelectorAll('input[type=number]').forEach(el => {
+    el.addEventListener('input', updateResults);
+  });
+  document.getElementById('leaseBrandstof').addEventListener('change', updateResults);
+
+  // Initial render
+  updateResults();
+});
+</script>
+</body>
+</html>
